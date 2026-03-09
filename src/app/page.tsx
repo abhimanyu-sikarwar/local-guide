@@ -1,161 +1,131 @@
 "use client";
-
-import { useTranslator } from "@/hooks/useTranslator";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { useEffect, useRef } from "react";
-
-// Status label map
-const STATUS_LABELS: Record<string, string> = {
-  idle: "Hold to speak",
-  recording: "Recording...",
-  transcribing: "Transcribing...",
-  translating: "Translating...",
-  speaking: "Playing...",
-  error: "Error",
-};
-
-// Language display map
-const LANG_LABELS: Record<string, { name: string; flag: string }> = {
-  "hi-IN": { name: "Hindi", flag: "🇮🇳" },
-  "kn-IN": { name: "Kannada", flag: "🏳️" },
-};
+import Link from "next/link";
+import { useTranslatorStore } from "@/store/translatorStore";
 
 export default function Home() {
-  const {
-    status,
-    transcript,
-    translation,
-    audioSrc,
-    sourceLanguage,
-    targetLanguage,
-    error,
-    toggleLanguage,
-    handleRecord,
-    handleRelease,
-    reset,
-  } = useTranslator();
-
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  // Auto-play translated audio
-  useEffect(() => {
-    if (audioSrc && audioRef.current) {
-      audioRef.current.src = audioSrc;
-      audioRef.current.play().catch(() => {});
-    }
-  }, [audioSrc]);
-
-  const isActive = status !== "idle" && status !== "error";
-  const src = LANG_LABELS[sourceLanguage];
-  const tgt = LANG_LABELS[targetLanguage];
+  const { history } = useTranslatorStore();
+  const LANG_NAMES: Record<string, string> = {
+    "hi-IN": "Hindi",
+    "kn-IN": "Kannada",
+  };
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center px-4 py-8 max-w-md mx-auto">
+    <main className="min-h-screen bg-white pb-24 max-w-md mx-auto">
       {/* Header */}
-      <div className="w-full text-center mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">BhashaSethu</h1>
-        <p className="text-sm text-muted-foreground">भाषा सेतु · Language Bridge</p>
-      </div>
-
-      {/* Language Toggle */}
-      <div className="flex items-center gap-3 mb-10">
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-200 text-orange-700 font-medium text-sm">
-          <span>{src.flag}</span>
-          <span>{src.name}</span>
+      <div className="flex items-center justify-between px-5 pt-14 pb-4">
+        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+          🧑
         </div>
-        <button
-          onClick={toggleLanguage}
-          disabled={isActive}
-          className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg shadow-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
-          aria-label="Swap languages"
-        >
-          ⇄
+        <h1 className="text-base font-bold tracking-tight">BhashaSethu</h1>
+        <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+          <svg
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
         </button>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 text-red-700 font-medium text-sm">
-          <span>{tgt.flag}</span>
-          <span>{tgt.name}</span>
-        </div>
       </div>
 
-      {/* Record Button */}
-      <div className="flex flex-col items-center gap-4 mb-10">
-        {/* Waveform animation */}
-        <div className={`flex items-center gap-[3px] h-8 ${status === "recording" ? "opacity-100" : "opacity-0"} transition-opacity`}>
-          {Array.from({ length: 7 }).map((_, i) => (
-            <div
-              key={i}
-              className="w-1 bg-primary rounded-full animate-bounce"
-              style={{
-                height: `${Math.floor(Math.random() * 20 + 10)}px`,
-                animationDelay: `${i * 0.1}s`,
-                animationDuration: "0.6s",
-              }}
-            />
-          ))}
-        </div>
-
-        <button
-          onPointerDown={handleRecord}
-          onPointerUp={handleRelease}
-          onPointerLeave={handleRelease}
-          disabled={isActive && status !== "recording"}
-          className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-lg transition-all select-none touch-none
-            ${status === "recording"
-              ? "bg-red-500 scale-110 shadow-red-200 shadow-xl"
-              : isActive
-              ? "bg-muted text-muted-foreground cursor-not-allowed"
-              : "bg-primary text-primary-foreground hover:scale-105 active:scale-95"
-            }`}
-          aria-label="Hold to speak"
+      <div className="px-5 flex flex-col gap-4">
+        {/* Hero card */}
+        <Link
+          href="/translate"
+          className="block rounded-2xl bg-[#1C1C1E] p-5 overflow-hidden relative"
         >
-          🎙️
-        </button>
+          <p className="text-xs text-gray-400 mb-1">BhashaSethu</p>
+          <h2 className="text-xl font-black text-white leading-tight mb-4">
+            Speak &<br />
+            Translate
+          </h2>
+          <span className="inline-flex items-center gap-1.5 bg-white text-[#1C1C1E] text-xs font-bold px-4 py-2 rounded-full">
+            Start <span>&rarr;</span>
+          </span>
+          <div className="absolute right-4 top-4 text-5xl opacity-30">🌐</div>
+        </Link>
 
-        <p className={`text-sm font-medium transition-colors ${status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
-          {STATUS_LABELS[status]}
-        </p>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="w-full mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={reset} className="ml-2 underline text-xs">Retry</button>
+        {/* Feature cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/phrasebook"
+            className="rounded-2xl bg-[#E8F5F0] p-4 flex flex-col gap-2"
+          >
+            <span className="text-2xl">📖</span>
+            <p className="text-sm font-bold text-[#1C1C1E] leading-tight">
+              Phrase
+              <br />
+              Book
+            </p>
+            <p className="text-xs text-gray-500">31 phrases</p>
+          </Link>
+          <Link
+            href="/translate?mode=text"
+            className="rounded-2xl bg-[#E8EEF5] p-4 flex flex-col gap-2"
+          >
+            <span className="text-2xl">⚡</span>
+            <p className="text-sm font-bold text-[#1C1C1E] leading-tight">
+              Quick
+              <br />
+              Cards
+            </p>
+            <p className="text-xs text-gray-500">One-tap phrases</p>
+          </Link>
         </div>
-      )}
 
-      {/* Transcript & Translation Cards */}
-      <div className="w-full flex flex-col gap-3">
-        {(transcript || status === "transcribing") && (
-          <Card className="border-orange-100">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground mb-1">You said ({src.name})</p>
-              {transcript ? (
-                <p className="text-base font-medium">{transcript}</p>
-              ) : (
-                <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {(translation || status === "translating" || status === "speaking") && (
-          <Card className="border-red-100">
-            <CardContent className="pt-4 pb-4">
-              <p className="text-xs text-muted-foreground mb-1">Translation ({tgt.name})</p>
-              {translation ? (
-                <p className="text-base font-medium">{translation}</p>
-              ) : (
-                <div className="h-4 bg-muted rounded animate-pulse w-2/3" />
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {/* Recent */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold text-[#1C1C1E]">
+              Recent Translations
+            </p>
+            <Link
+              href="/history"
+              className="text-xs text-[#00BFA5] font-medium"
+            >
+              See All
+            </Link>
+          </div>
+          {history.length === 0 ? (
+            <div className="text-center py-8 text-gray-300">
+              <p className="text-3xl mb-2">🗣️</p>
+              <p className="text-sm">No translations yet</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {history.slice(0, 4).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-3 py-3 border-b border-gray-50"
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-xl">
+                      {entry.sourceLang === "hi-IN" ? "🇮🇳" : "🏳️"}
+                    </span>
+                    <span className="text-xl">
+                      {entry.targetLang === "kn-IN" ? "🏳️" : "🇮🇳"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {LANG_NAMES[entry.sourceLang]} to{" "}
+                      {LANG_NAMES[entry.targetLang]}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {entry.sourceText}
+                    </p>
+                  </div>
+                  <span className="text-gray-300 text-xs">&rsaquo;</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Hidden audio player */}
-      <audio ref={audioRef} className="hidden" />
     </main>
   );
 }
