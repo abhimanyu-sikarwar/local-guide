@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { useAudioRecorder } from "./useAudioRecorder";
+import { useTranslatorStore } from "@/store/translatorStore";
 
 export type TranslatorStatus =
   | "idle"
@@ -30,21 +31,19 @@ export function useTranslator(): TranslatorState {
   const [transcript, setTranscript] = useState("");
   const [translation, setTranslation] = useState("");
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
-  const [sourceLanguage, setSourceLanguage] = useState("hi-IN");
-  const [targetLanguage, setTargetLanguage] = useState("kn-IN");
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef(false);
 
+  const { sourceLanguage, targetLanguage, speaker, toggleLanguage: storeToggle } = useTranslatorStore();
   const recorder = useAudioRecorder();
 
   const toggleLanguage = useCallback(() => {
-    setSourceLanguage((s) => (s === "hi-IN" ? "kn-IN" : "hi-IN"));
-    setTargetLanguage((t) => (t === "kn-IN" ? "hi-IN" : "kn-IN"));
+    storeToggle();
     setTranscript("");
     setTranslation("");
     setAudioSrc(null);
     setError(null);
-  }, []);
+  }, [storeToggle]);
 
   const handleRecord = useCallback(async () => {
     abortRef.current = false;
@@ -122,7 +121,7 @@ export function useTranslator(): TranslatorState {
       const res = await fetch("/api/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: translatedText, language: targetLanguage }),
+        body: JSON.stringify({ text: translatedText, language: targetLanguage, speaker }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "TTS failed");
@@ -136,7 +135,7 @@ export function useTranslator(): TranslatorState {
     }
 
     setStatus("idle");
-  }, [status, recorder, sourceLanguage, targetLanguage]);
+  }, [status, recorder, sourceLanguage, targetLanguage, speaker]);
 
   const reset = useCallback(() => {
     abortRef.current = true;

@@ -3,6 +3,7 @@
 import { useTranslator } from "@/hooks/useTranslator";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { getLangMeta } from "@/lib/sarvam";
 
 // Animated waveform component with requestAnimationFrame
 function Waveform({ active }: { active: boolean }) {
@@ -73,11 +74,6 @@ function AnimatedDots() {
   return <span className="text-[#00BFA5]">{dots}</span>;
 }
 
-const LANG_META: Record<string, { name: string; flag: string }> = {
-  "hi-IN": { name: "Hindi", flag: "🇮🇳" },
-  "kn-IN": { name: "Kannada", flag: "🏳️" },
-};
-
 export default function TranslatePage() {
   const router = useRouter();
   const {
@@ -107,8 +103,8 @@ export default function TranslatePage() {
     status === "transcribing" ||
     status === "translating" ||
     status === "speaking";
-  const src = LANG_META[sourceLanguage];
-  const tgt = LANG_META[targetLanguage];
+  const src = getLangMeta(sourceLanguage);
+  const tgt = getLangMeta(targetLanguage);
 
   // SCREEN 4: Listening / Processing mode
   if (isListening || isProcessing) {

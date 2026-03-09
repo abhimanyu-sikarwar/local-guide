@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { DEFAULT_SPEAKER, type VoiceId } from "@/lib/sarvam";
 
 export interface TranslationEntry {
   id: string;
@@ -7,17 +8,18 @@ export interface TranslationEntry {
   translatedText: string;
   sourceLang: string;
   targetLang: string;
-  audioBase64?: string;
   timestamp: number;
 }
 
 interface TranslatorStore {
   sourceLanguage: string;
   targetLanguage: string;
-  speakerGender: "male" | "female";
+  speaker: VoiceId;
   history: TranslationEntry[];
+  setSourceLanguage: (lang: string) => void;
+  setTargetLanguage: (lang: string) => void;
   toggleLanguage: () => void;
-  setSpeakerGender: (gender: "male" | "female") => void;
+  setSpeaker: (speaker: VoiceId) => void;
   addToHistory: (entry: Omit<TranslationEntry, "id" | "timestamp">) => void;
   clearHistory: () => void;
   removeFromHistory: (id: string) => void;
@@ -28,8 +30,11 @@ export const useTranslatorStore = create<TranslatorStore>()(
     (set) => ({
       sourceLanguage: "hi-IN",
       targetLanguage: "kn-IN",
-      speakerGender: "female",
+      speaker: DEFAULT_SPEAKER,
       history: [],
+
+      setSourceLanguage: (lang) => set({ sourceLanguage: lang }),
+      setTargetLanguage: (lang) => set({ targetLanguage: lang }),
 
       toggleLanguage: () =>
         set((s) => ({
@@ -37,7 +42,7 @@ export const useTranslatorStore = create<TranslatorStore>()(
           targetLanguage: s.sourceLanguage,
         })),
 
-      setSpeakerGender: (gender) => set({ speakerGender: gender }),
+      setSpeaker: (speaker) => set({ speaker }),
 
       addToHistory: (entry) =>
         set((s) => ({
@@ -52,8 +57,6 @@ export const useTranslatorStore = create<TranslatorStore>()(
       removeFromHistory: (id) =>
         set((s) => ({ history: s.history.filter((e) => e.id !== id) })),
     }),
-    {
-      name: "translator-store",
-    }
+    { name: "translator-store" }
   )
 );
