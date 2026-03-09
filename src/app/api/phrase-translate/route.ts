@@ -22,6 +22,11 @@ async function writeCache(cache: Record<string, string>) {
   }
 }
 
+const VALID_CODES = new Set(["bn-IN","en-IN","gu-IN","hi-IN","kn-IN","ml-IN","mr-IN","od-IN","pa-IN","ta-IN","te-IN"]);
+function validCode(code: unknown, fallback: string): string {
+  return typeof code === "string" && VALID_CODES.has(code) ? code : fallback;
+}
+
 export async function POST(req: NextRequest) {
   let body: { phraseId?: string; text?: string; from?: string; to?: string };
   try {
@@ -30,10 +35,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { phraseId, text, from = "hi-IN", to } = body;
+  const { phraseId, text } = body;
+  const from = validCode(body.from, "hi-IN");
+  const to   = validCode(body.to,   "kn-IN");
 
-  if (!text || !to || !phraseId) {
-    return NextResponse.json({ error: "Missing phraseId, text, or to" }, { status: 400 });
+  if (!text || !phraseId) {
+    return NextResponse.json({ error: "Missing phraseId or text" }, { status: 400 });
+  }
+
+  // Same language — return source text directly
+  if (from === to) {
+    return NextResponse.json({ translatedText: text, cached: true });
   }
 
   const cacheKey = `${phraseId}::${to}`;

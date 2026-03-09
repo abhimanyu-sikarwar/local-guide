@@ -6,6 +6,10 @@ import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 
 const AUDIO_DIR = join(process.cwd(), "data", "audio");
+const VALID_CODES = new Set(["bn-IN","en-IN","gu-IN","hi-IN","kn-IN","ml-IN","mr-IN","od-IN","pa-IN","ta-IN","te-IN"]);
+function validCode(code: unknown, fallback: string): string {
+  return typeof code === "string" && VALID_CODES.has(code) ? code : fallback;
+}
 
 // Phrase audio: data/audio/{phraseId}-{language}-{speaker}.txt  (via phraseAudioFilename)
 // Generic audio: data/audio/{sha256}.txt
@@ -36,7 +40,7 @@ async function writeAudioCache(filename: string, audio: string) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const phraseId = searchParams.get("phraseId");
-  const language = searchParams.get("language") ?? "kn-IN";
+  const language = validCode(searchParams.get("language"), "kn-IN");
   const speaker  = searchParams.get("speaker")  ?? DEFAULT_SPEAKER;
 
   if (!phraseId) {
@@ -59,7 +63,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { text, language = "kn-IN", speaker = DEFAULT_SPEAKER, phraseId } = body;
+  const language = validCode(body.language, "kn-IN");
+  const speaker  = body.speaker ?? DEFAULT_SPEAKER;
+  const phraseId = body.phraseId;
+  const text     = body.text;
 
   if (!text || typeof text !== "string" || text.trim() === "") {
     return NextResponse.json({ error: "Missing text" }, { status: 400 });

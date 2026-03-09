@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sarvam } from "@/lib/sarvam";
 
+const VALID_CODES = new Set(["bn-IN","en-IN","gu-IN","hi-IN","kn-IN","ml-IN","mr-IN","od-IN","pa-IN","ta-IN","te-IN"]);
+function validCode(code: unknown, fallback: string): string {
+  return typeof code === "string" && VALID_CODES.has(code) ? code : fallback;
+}
+
 export async function POST(req: NextRequest) {
   let body: { text?: string; from?: string; to?: string; mode?: string };
   try {
@@ -9,10 +14,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { text, from = "hi-IN", to = "kn-IN", mode = "modern-colloquial" } = body;
+  const text = body.text;
+  const from = validCode(body.from, "hi-IN");
+  const to   = validCode(body.to,   "kn-IN");
+  const mode = body.mode ?? "modern-colloquial";
 
   if (!text || typeof text !== "string" || text.trim() === "") {
     return NextResponse.json({ translatedText: "" });
+  }
+
+  // Same language — return as-is, no API call needed
+  if (from === to) {
+    return NextResponse.json({ translatedText: text });
   }
 
   try {
