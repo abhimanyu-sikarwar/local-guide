@@ -15,7 +15,7 @@ function BackButton() {
   return (
     <button
       onClick={() => router.back()}
-      className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
+      className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 text-[#1C1C1E] dark:text-white flex items-center justify-center"
       aria-label="Go back"
     >
       <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -26,25 +26,22 @@ function BackButton() {
 }
 
 export function Header({ title, subtitle, left, right }: HeaderProps) {
-  const showBack = left === undefined; // default: show back button
   const leftNode = left === false ? <div className="w-9" /> : left ?? <BackButton />;
 
   return (
     <div className={`px-5 pt-14 ${subtitle ? "pb-6" : "pb-4"}`}>
       {subtitle ? (
-        // Large title style (Settings-style)
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-black text-[#1C1C1E]">{title}</h1>
-            <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>
+            <h1 className="text-2xl font-black text-[#1C1C1E] dark:text-white">{title}</h1>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{subtitle}</p>
           </div>
           {right && <div className="mt-1">{right}</div>}
         </div>
       ) : (
-        // Compact nav style (Translate / Home style)
         <div className="flex items-center justify-between">
           {leftNode}
-          <h2 className="text-base font-bold">{title}</h2>
+          <h2 className="text-base font-bold text-[#1C1C1E] dark:text-white">{title}</h2>
           <div className="w-9 flex justify-end">{right ?? <div />}</div>
         </div>
       )}
