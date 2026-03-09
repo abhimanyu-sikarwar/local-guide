@@ -14,7 +14,7 @@ export function QuickCards() {
       const res = await fetch("/api/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: phrase.kannada, language: "kn-IN" }),
+        body: JSON.stringify({ text: phrase.translations["kn-IN"] ?? phrase.english, language: "kn-IN" }),
       });
       const data = await res.json();
       if (data.audio) {
@@ -43,8 +43,8 @@ export function QuickCards() {
                 : "border-border bg-card hover:bg-muted/50"
             }`}
           >
-            <p className="text-xs font-medium leading-snug">{phrase.hindi}</p>
-            <p className="text-xs text-muted-foreground leading-snug mt-0.5">{phrase.kannada}</p>
+            <p className="text-xs font-medium leading-snug">{phrase.translations["hi-IN"] ?? phrase.english}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-0.5">{phrase.translations["kn-IN"] ?? ""}</p>
           </button>
         ))}
       </div>

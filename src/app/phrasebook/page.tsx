@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PHRASES, CATEGORY_META, type PhraseCategory, type Phrase } from "@/data/phrasebook";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +40,7 @@ function PhraseCard({
   const [copied, setCopied] = useState(false);
   const [translatedTarget, setTranslatedTarget] = useState<string | null>(null);
 
-  const sourceText = getBuiltinText(phrase, sourceLanguage) ?? phrase.hindi;
+  const sourceText = getBuiltinText(phrase, sourceLanguage) ?? phrase.translations["hi-IN"] ?? phrase.english;
   const builtinTarget = getBuiltinText(phrase, targetLanguage);
   const cachedTarget = builtinTarget ?? translatedTarget;
 
@@ -129,7 +129,7 @@ function PhraseCard({
   );
 }
 
-export default function PhrasebookPage() {
+function PhrasebookContent() {
   const { sourceLanguage, targetLanguage, speaker } = useTranslatorStore();
   const tgtMeta = getLangMeta(targetLanguage);
   const categories = Object.keys(CATEGORY_META) as PhraseCategory[];
@@ -264,5 +264,13 @@ export default function PhrasebookPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function PhrasebookPage() {
+  return (
+    <Suspense>
+      <PhrasebookContent />
+    </Suspense>
   );
 }

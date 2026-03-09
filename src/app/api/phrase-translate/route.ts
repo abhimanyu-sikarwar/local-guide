@@ -49,10 +49,8 @@ export async function POST(req: NextRequest) {
       source_language_code: from as "hi-IN" | "kn-IN",
       target_language_code: to as "hi-IN" | "kn-IN",
       model: "mayura:v1",
-      // @ts-expect-error — SDK typings may not expose mode
       mode: "modern-colloquial",
       speaker_gender: "Male",
-      enable_preprocessing: true,
     });
 
     const translatedText =
