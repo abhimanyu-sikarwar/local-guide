@@ -4,6 +4,7 @@ import { useTranslator } from "@/hooks/useTranslator";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getLangMeta } from "@/lib/sarvam";
+import { Header } from "@/components/Header";
 
 // Animated waveform component with requestAnimationFrame
 function Waveform({ active }: { active: boolean }) {
@@ -110,49 +111,16 @@ export default function TranslatePage() {
   if (isListening || isProcessing) {
     return (
       <main className="min-h-screen bg-white flex flex-col max-w-md mx-auto pb-24">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-14 pb-6">
-          <button
-            onClick={reset}
-            className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
-          >
-            <svg
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              viewBox="0 0 24 24"
-            >
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
-          <h2 className="text-base font-bold">
-            {isListening ? (
-              <>
-                Listening
-                <AnimatedDots />
-              </>
-            ) : isProcessing ? (
-              "Processing..."
-            ) : (
-              "Translate"
-            )}
-          </h2>
-          <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-            <svg
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-          </button>
-        </div>
+        <Header
+          title={isListening ? "Listening..." : isProcessing ? "Processing..." : "Translate"}
+          left={
+            <button onClick={reset} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" aria-label="Back">
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+          }
+        />
 
         {/* Language selector */}
         <div className="px-5 mb-8">
@@ -214,40 +182,16 @@ export default function TranslatePage() {
   // SCREEN 3: Text translate / idle mode
   return (
     <main className="min-h-screen bg-white flex flex-col max-w-md mx-auto pb-24">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-14 pb-6">
-        <button
-          onClick={() => router.push("/")}
-          className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"
-        >
-          <svg
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            viewBox="0 0 24 24"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <h2 className="text-base font-bold">Translate</h2>
-        <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-          <svg
-            width="16"
-            height="16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <rect x="3" y="3" width="7" height="7" rx="1" />
-            <rect x="14" y="3" width="7" height="7" rx="1" />
-            <rect x="3" y="14" width="7" height="7" rx="1" />
-            <rect x="14" y="14" width="7" height="7" rx="1" />
-          </svg>
-        </button>
-      </div>
+      <Header
+        title="Translate"
+        left={
+          <button onClick={() => router.push("/")} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center" aria-label="Home">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+        }
+      />
 
       {/* Language row */}
       <div className="flex items-center justify-center gap-3 px-5 mb-6">

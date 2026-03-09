@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { PHRASES, CATEGORY_META, type PhraseCategory, type Phrase } from "@/data/phrasebook";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useTranslatorStore } from "@/store/translatorStore";
 import { getLangMeta } from "@/lib/sarvam";
 import { phraseAudioFilename } from "@/data/phrasebook";
+import { Header, SearchIcon } from "@/components/Header";
 
 function getBuiltinText(phrase: Phrase, langCode: string): string | null {
   return phrase.translations[langCode as keyof typeof phrase.translations] ?? null;
@@ -131,50 +133,136 @@ export default function PhrasebookPage() {
   const { sourceLanguage, targetLanguage, speaker } = useTranslatorStore();
   const tgtMeta = getLangMeta(targetLanguage);
   const categories = Object.keys(CATEGORY_META) as PhraseCategory[];
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const activeCategory = (searchParams.get("cat") as PhraseCategory) || "cab";
+  const [searchOpen, setSearchOpen] = useState(searchParams.get("search") === "1");
+  const [query, setQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  const setCategory = useCallback((cat: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("cat", cat);
+    params.delete("search");
+    router.replace(`/phrasebook?${params.toString()}`, { scroll: false });
+    setSearchOpen(false);
+    setQuery("");
+  }, [router, searchParams]);
+
+  const q = query.trim().toLowerCase();
+  const searchResults = q
+    ? PHRASES.filter((p) => {
+        const src = (p.translations[sourceLanguage as keyof typeof p.translations] ?? "").toLowerCase();
+        const tgt = (p.translations[targetLanguage as keyof typeof p.translations] ?? "").toLowerCase();
+        return src.includes(q) || tgt.includes(q) || p.english.toLowerCase().includes(q);
+      })
+    : [];
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 max-w-md mx-auto">
-      <h1 className="text-xl font-bold mb-1">Phrasebook</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        Tap any phrase to hear it in {tgtMeta.name}
-      </p>
+    <main className="min-h-screen bg-background max-w-md mx-auto">
+      <Header
+        title="Phrasebook"
+        subtitle={`Tap any phrase to hear it in ${tgtMeta.name}`}
+        left={false}
+        right={
+          <button
+            onClick={() => { setSearchOpen((v) => !v); setQuery(""); }}
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+              searchOpen ? "bg-[#00BFA5] text-white" : "bg-gray-100 text-[#1C1C1E]"
+            }`}
+            aria-label="Search"
+          >
+            <SearchIcon />
+          </button>
+        }
+      />
 
-      <Tabs defaultValue="cab">
-        <TabsList className="w-full flex overflow-x-auto mb-4 h-auto flex-wrap gap-1 bg-transparent p-0">
-          {categories.map((cat) => {
-            const meta = CATEGORY_META[cat];
-            return (
-              <TabsTrigger
-                key={cat}
-                value={cat}
-                className={`flex items-center gap-1 text-xs px-3 py-2 rounded-full border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary ${
-                  cat === "emergency" ? "border-red-300 data-[state=active]:bg-red-500" : "border-border"
-                }`}
-              >
-                <span>{meta.emoji}</span>
-                <span>{meta.label}</span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      <div className="px-4 pb-6">
+        {/* Search bar */}
+        {searchOpen && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+              <SearchIcon className="text-gray-400 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search phrases..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-gray-400"
+              />
+              {query && (
+                <button onClick={() => setQuery("")} className="text-gray-400 hover:text-gray-600 text-lg leading-none">
+                  ×
+                </button>
+              )}
+            </div>
 
-        {categories.map((cat) => {
-          const phrases = PHRASES.filter((p) => p.category === cat);
-          return (
-            <TabsContent key={cat} value={cat} className="flex flex-col gap-2 mt-0">
-              {phrases.map((phrase) => (
-                <PhraseCard
-                  key={phrase.id}
-                  phrase={phrase}
-                  sourceLanguage={sourceLanguage}
-                  targetLanguage={targetLanguage}
-                  speaker={speaker}
-                />
-              ))}
-            </TabsContent>
-          );
-        })}
-      </Tabs>
+            {q && (
+              <div className="mt-3 flex flex-col gap-2">
+                {searchResults.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No phrases found</p>
+                ) : (
+                  searchResults.map((phrase) => (
+                    <PhraseCard
+                      key={phrase.id}
+                      phrase={phrase}
+                      sourceLanguage={sourceLanguage}
+                      targetLanguage={targetLanguage}
+                      speaker={speaker}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Category tabs (hidden while searching with a query) */}
+        {(!searchOpen || !q) && (
+          <Tabs value={activeCategory} onValueChange={setCategory}>
+            <TabsList className="w-full flex overflow-x-auto mb-4 h-auto flex-wrap gap-1 bg-transparent p-0">
+              {categories.map((cat) => {
+                const meta = CATEGORY_META[cat];
+                return (
+                  <TabsTrigger
+                    key={cat}
+                    value={cat}
+                    className={`flex items-center gap-1 text-xs px-3 py-2 rounded-full border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary ${
+                      cat === "emergency" ? "border-red-300 data-[state=active]:bg-red-500" : "border-border"
+                    }`}
+                  >
+                    <span>{meta.emoji}</span>
+                    <span>{meta.label}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            {categories.map((cat) => {
+              const phrases = PHRASES.filter((p) => p.category === cat);
+              return (
+                <TabsContent key={cat} value={cat} className="flex flex-col gap-2 mt-0">
+                  {phrases.map((phrase) => (
+                    <PhraseCard
+                      key={phrase.id}
+                      phrase={phrase}
+                      sourceLanguage={sourceLanguage}
+                      targetLanguage={targetLanguage}
+                      speaker={speaker}
+                    />
+                  ))}
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        )}
+      </div>
     </main>
   );
 }

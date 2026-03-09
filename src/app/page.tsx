@@ -1,36 +1,27 @@
 "use client";
 import Link from "next/link";
 import { useTranslatorStore } from "@/store/translatorStore";
+import { Header, SearchIcon } from "@/components/Header";
+import { getLangMeta } from "@/lib/sarvam";
 
 export default function Home() {
   const { history } = useTranslatorStore();
-  const LANG_NAMES: Record<string, string> = {
-    "hi-IN": "Hindi",
-    "kn-IN": "Kannada",
-  };
 
   return (
     <main className="min-h-screen bg-white pb-24 max-w-md mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-14 pb-4">
-        <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-lg">
-          🧑
-        </div>
-        <h1 className="text-base font-bold tracking-tight">BhashaSethu</h1>
-        <button className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
-          <svg
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-        </button>
-      </div>
+      <Header
+        title="BhashaSethu"
+        left={
+          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+            🧑
+          </div>
+        }
+        right={
+          <Link href="/phrasebook?search=1" className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+            <SearchIcon />
+          </Link>
+        }
+      />
 
       <div className="px-5 flex flex-col gap-4">
         {/* Hero card */}
@@ -103,17 +94,13 @@ export default function Home() {
                   className="flex items-center gap-3 py-3 border-b border-gray-50"
                 >
                   <div className="flex items-center gap-1">
-                    <span className="text-xl">
-                      {entry.sourceLang === "hi-IN" ? "🇮🇳" : "🏳️"}
-                    </span>
-                    <span className="text-xl">
-                      {entry.targetLang === "kn-IN" ? "🏳️" : "🇮🇳"}
-                    </span>
+                    <span className="text-xl">{getLangMeta(entry.sourceLang).flag}</span>
+                    <span className="text-xl">{getLangMeta(entry.targetLang).flag}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
-                      {LANG_NAMES[entry.sourceLang]} to{" "}
-                      {LANG_NAMES[entry.targetLang]}
+                      {getLangMeta(entry.sourceLang).name} to{" "}
+                      {getLangMeta(entry.targetLang).name}
                     </p>
                     <p className="text-xs text-gray-400 truncate">
                       {entry.sourceText}

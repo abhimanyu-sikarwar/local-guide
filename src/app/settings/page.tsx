@@ -2,6 +2,7 @@
 
 import { useTranslatorStore } from "@/store/translatorStore";
 import { SUPPORTED_LANGUAGES, TTS_VOICES, type VoiceId } from "@/lib/sarvam";
+import { Header } from "@/components/Header";
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">{children}</p>;
@@ -16,11 +17,7 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen bg-white pb-28 max-w-md mx-auto">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-6">
-        <h1 className="text-2xl font-black text-[#1C1C1E]">Settings</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Language & voice preferences</p>
-      </div>
+      <Header title="Settings" subtitle="Language & voice preferences" left={false} />
 
       <div className="px-5 flex flex-col gap-8">
 
