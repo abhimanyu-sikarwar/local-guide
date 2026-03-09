@@ -4,23 +4,84 @@ import { useState } from "react";
 import { PHRASES, CATEGORY_META, type PhraseCategory, type Phrase } from "@/data/phrasebook";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useTranslatorStore } from "@/store/translatorStore";
+import { getLangMeta } from "@/lib/sarvam";
+import { phraseAudioFilename } from "@/data/phrasebook";
 
-function PhraseCard({ phrase, targetLanguage }: { phrase: Phrase; targetLanguage: string }) {
+function getBuiltinText(phrase: Phrase, langCode: string): string | null {
+  return phrase.translations[langCode as keyof typeof phrase.translations] ?? null;
+}
+
+async function translatePhrase(phraseId: string, text: string, from: string, to: string): Promise<string> {
+  const res = await fetch("/api/phrase-translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ phraseId, text, from, to }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? "Translation failed");
+  return data.translatedText ?? text;
+}
+
+function PhraseCard({
+  phrase,
+  sourceLanguage,
+  targetLanguage,
+  speaker,
+}: {
+  phrase: Phrase;
+  sourceLanguage: string;
+  targetLanguage: string;
+  speaker: string;
+}) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [translatedTarget, setTranslatedTarget] = useState<string | null>(null);
+
+  const sourceText = getBuiltinText(phrase, sourceLanguage) ?? phrase.hindi;
+  const builtinTarget = getBuiltinText(phrase, targetLanguage);
+  const cachedTarget = builtinTarget ?? translatedTarget;
+
+  const getTargetText = async (): Promise<string> => {
+    if (builtinTarget) return builtinTarget;
+    if (translatedTarget) return translatedTarget;
+    const from = sourceLanguage === "hi-IN" ? "hi-IN" : "kn-IN";
+    const translated = await translatePhrase(phrase.id, sourceText, from, targetLanguage);
+    setTranslatedTarget(translated);
+    return translated;
+  };
 
   const handleSpeak = async () => {
     if (isPlaying) return;
     setIsPlaying(true);
     try {
-      const res = await fetch("/api/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: targetLanguage === "kn-IN" ? phrase.kannada : phrase.hindi, language: targetLanguage }),
-      });
-      const data = await res.json();
-      if (data.audio) {
-        const audio = new Audio(`data:audio/wav;base64,${data.audio}`);
+      // Check local server cache first (no Sarvam call)
+      const filename = phraseAudioFilename(phrase.id, targetLanguage, speaker);
+      const cacheRes = await fetch(
+        `/api/speak?phraseId=${phrase.id}&language=${targetLanguage}&speaker=${speaker}`
+      );
+
+      let audioB64: string | null = null;
+
+      if (cacheRes.ok) {
+        const cached = await cacheRes.json();
+        audioB64 = cached.audio ?? null;
+      }
+
+      if (!audioB64) {
+        // Cache miss — generate via Sarvam and save to data/audio/{filename}
+        const textToSpeak = await getTargetText();
+        const res = await fetch("/api/speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: textToSpeak, language: targetLanguage, speaker, phraseId: phrase.id }),
+        });
+        const data = await res.json();
+        audioB64 = data.audio ?? null;
+      }
+
+      if (audioB64) {
+        const audio = new Audio(`data:audio/wav;base64,${audioB64}`);
         audio.onended = () => setIsPlaying(false);
         audio.play();
       } else {
@@ -31,8 +92,9 @@ function PhraseCard({ phrase, targetLanguage }: { phrase: Phrase; targetLanguage
     }
   };
 
-  const handleLongPress = () => {
-    navigator.clipboard.writeText(phrase.kannada).then(() => {
+  const handleLongPress = async () => {
+    const text = await getTargetText();
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
@@ -46,8 +108,10 @@ function PhraseCard({ phrase, targetLanguage }: { phrase: Phrase; targetLanguage
     >
       <CardContent className="pt-4 pb-4 flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm truncate">{phrase.hindi}</p>
-          <p className="text-muted-foreground text-sm truncate">{phrase.kannada}</p>
+          <p className="font-medium text-sm truncate">{sourceText}</p>
+          <p className="text-muted-foreground text-sm truncate">
+            {cachedTarget ?? <span className="italic text-muted-foreground/50">Tap to translate</span>}
+          </p>
           <p className="text-xs text-muted-foreground/70 truncate">{phrase.english}</p>
         </div>
         <button
@@ -64,13 +128,16 @@ function PhraseCard({ phrase, targetLanguage }: { phrase: Phrase; targetLanguage
 }
 
 export default function PhrasebookPage() {
-  const [targetLanguage] = useState("kn-IN");
+  const { sourceLanguage, targetLanguage, speaker } = useTranslatorStore();
+  const tgtMeta = getLangMeta(targetLanguage);
   const categories = Object.keys(CATEGORY_META) as PhraseCategory[];
 
   return (
     <main className="min-h-screen bg-background px-4 py-6 max-w-md mx-auto">
       <h1 className="text-xl font-bold mb-1">Phrasebook</h1>
-      <p className="text-sm text-muted-foreground mb-6">Tap any phrase to hear it in Kannada</p>
+      <p className="text-sm text-muted-foreground mb-6">
+        Tap any phrase to hear it in {tgtMeta.name}
+      </p>
 
       <Tabs defaultValue="cab">
         <TabsList className="w-full flex overflow-x-auto mb-4 h-auto flex-wrap gap-1 bg-transparent p-0">
@@ -96,7 +163,13 @@ export default function PhrasebookPage() {
           return (
             <TabsContent key={cat} value={cat} className="flex flex-col gap-2 mt-0">
               {phrases.map((phrase) => (
-                <PhraseCard key={phrase.id} phrase={phrase} targetLanguage={targetLanguage} />
+                <PhraseCard
+                  key={phrase.id}
+                  phrase={phrase}
+                  sourceLanguage={sourceLanguage}
+                  targetLanguage={targetLanguage}
+                  speaker={speaker}
+                />
               ))}
             </TabsContent>
           );
